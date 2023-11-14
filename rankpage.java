@@ -3,13 +3,17 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Dictionary;
+import java.util.Enumeration;
 import java.util.Hashtable;  
 
 
 class rankpage {
     
     private static final String FILENAME = "polblogs.csv";
+    private static final float D = 0.85f;
+
     static int numberOfNodes = 0;
+    static Enumeration<Integer> keyList;
     static Dictionary<Integer, PageRank> pages = new Hashtable<Integer, PageRank>();
 
     /**
@@ -38,15 +42,7 @@ class rankpage {
             }
         }
 
-        // DO some math(Use damping factor)
-            
-                // use dictionary
-        numberOfNodes = pages.size();
-        Enumeration<Integer> keys = pages.keys();
-        for(int i : keys){
-            pages.get(i).SetInitialScore(numberOfNodes);
-
-        }
+        initializeScore();
 
             // ( (1 - d)/ n ) + d * (sum of each page P's Pagerank: current page rank / outbound links)
 
@@ -54,6 +50,7 @@ class rankpage {
     }
 
     public static void parseInput(int node1, int node2){
+
         // If the outgoing link is not present in the hashTable.
         if (pages.get(node1) == null){
             PageRank valueData = new PageRank(node2);
@@ -62,6 +59,26 @@ class rankpage {
         // If the outgoing link is present
         else{
             pages.get(node1).AddNode(node2);
+        }
+    }
+
+    public static void initializeScore(){
+        keyList = pages.keys();
+        numberOfNodes = pages.size();
+        while(keyList.hasMoreElements()){
+            int i = keyList.nextElement();
+            pages.get(i).SetInitialScore(numberOfNodes);
+        }
+    }
+
+    public static void iterate(){
+        while(keyList.hasMoreElements()){
+            int i = keyList.nextElement();
+            int[] outDegreeNodes = pages.get(i).edgeTo;
+            for(int j = 0; j< outDegreeNodes.length; j++){
+                float scoreOfNode = pages.get(outDegreeNodes[j]).oldValue;
+                pages.get(i).newValue += scoreOfNode;
+            }
         }
     }
 }
