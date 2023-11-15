@@ -4,16 +4,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Enumeration;
-import java.util.Hashtable;  
+import java.util.Hashtable;
+import java.util.Iterator;  
 
 
 class rankpage {
     
-    private static final String FILENAME = "polblogs.csv";
+    private static final String FILENAME = "example.csv";
     private static final float D = 0.85f;
 
     static int numberOfNodes = 0;
-    static Enumeration<Integer> keyList;
     static Dictionary<Integer, PageRank> pages = new Hashtable<Integer, PageRank>();
 
     /**
@@ -41,8 +41,20 @@ class rankpage {
                 e.printStackTrace();
             }
         }
-
+       
         initializeScore();
+        for(Enumeration<Integer> E = pages.keys(); E.hasMoreElements();){
+            int i = E.nextElement();
+            pages.get(i).printPageRank(i);
+        }
+
+        iterate();
+        System.out.println("First Iteration:\n");
+
+        for(Enumeration<Integer> E = pages.keys(); E.hasMoreElements();){
+            int i = E.nextElement();
+            pages.get(i).printPageRank(i);
+        }
 
             // ( (1 - d)/ n ) + d * (sum of each page P's Pagerank: current page rank / outbound links)
 
@@ -63,21 +75,26 @@ class rankpage {
     }
 
     public static void initializeScore(){
-        keyList = pages.keys();
         numberOfNodes = pages.size();
-        while(keyList.hasMoreElements()){
-            int i = keyList.nextElement();
-            pages.get(i).SetInitialScore(numberOfNodes);
+        for(Enumeration<Integer> E = pages.keys(); E.hasMoreElements();){
+            int i = E.nextElement();
+            float f = 1.0f / numberOfNodes;
+            pages.get(i).SetInitialScore(f);
         }
     }
 
     public static void iterate(){
-        while(keyList.hasMoreElements()){
-            int i = keyList.nextElement();
-            int[] outDegreeNodes = pages.get(i).edgeTo;
-            for(int j = 0; j< outDegreeNodes.length; j++){
-                float scoreOfNode = pages.get(outDegreeNodes[j]).oldValue;
-                pages.get(i).newValue += scoreOfNode;
+        for(Enumeration<Integer> E = pages.keys(); E.hasMoreElements();){
+            int i = E.nextElement();
+            ArrayList outDegreeNodes = pages.get(i).edgeTo;
+            int arraySize = outDegreeNodes.size();
+
+            //We iterate through the list of nodes that the current node is pointing to.
+            //
+            for(int j = 0; j < arraySize; j++){
+                Object node = outDegreeNodes.get(j);
+                float scoreOfNode = pages.get(node).oldValue;
+                pages.get(node).newValue += scoreOfNode/arraySize;
             }
         }
     }
@@ -98,7 +115,12 @@ class PageRank {
         edgeTo.add(node);
     }
 
-    public void SetInitialScore(int n){
-        oldValue = 1/n;
+    public void SetInitialScore(float n){
+        oldValue = n;
+    }
+
+    public void printPageRank(int key){
+        System.out.println("Key: " + key + " -- {oldValue : " + oldValue +
+         " | newValue : " + newValue + " | Edges to : " + edgeTo.toString() + "}");
     }
 }
