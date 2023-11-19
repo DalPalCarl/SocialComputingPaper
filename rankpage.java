@@ -19,7 +19,7 @@ class rankpage {
     static ArrayList sinks = new ArrayList<>();
     static float damping;
     static boolean flag;
-    static Dictionary<Integer, PageRank> pages = new Hashtable<Integer, PageRank>();
+    static Dictionary<String, PageRank> pages = new Hashtable<String, PageRank>();
 
     /**
      * @param args
@@ -33,7 +33,7 @@ class rankpage {
             reader = new BufferedReader(new FileReader(FILENAME));
             while ((line = reader.readLine()) != null)    {  
                 String[] code = line.split(splitBy);    // use comma as separator
-                parseInput(Integer.parseInt(code[0]), Integer.parseInt(code[2]));
+                parseInput(code[0], code[2]);
             }
 
         
@@ -57,34 +57,44 @@ class rankpage {
 
         //Then, we want to curate a list of sinks (nodes with no out degrees)
         //So we don't have to keep calculating them in the future
-        for(Enumeration<Integer> E = pages.keys(); E.hasMoreElements();){
-            int i = E.nextElement();
-            if(pages.get(i).edgeTo.size() < 1){
-                sinks.add(i);
+        for(Enumeration<String> E = pages.keys(); E.hasMoreElements();){
+            String i = E.nextElement();
+            for(int j = 0; j < pages.get(i).edgeTo.size(); j++){
+                if(pages.get(pages.get(i).edgeTo.get(j)) == null){
+                    sinks.add(j);
+                }
             }
         }
+
+        
 
         //Here's where the magic happens: We want to walk through each iteration
         //to update the scores.  The algorithm converges when either 1) we go through
         // 100 iterations or 2) the difference between the old score and the new score 
         //has an error margin less than 0.01
 
+        for(Enumeration<String> E = pages.keys(); E.hasMoreElements();){
+            String i = E.nextElement();
+            //pages.get(i).printScores(i);
+        }
+
         int step = 1;
         while(step <= 100 && flag){
             System.out.println("Step " + step + ":\n");
             iterate();
-
-            for(Enumeration<Integer> E = pages.keys(); E.hasMoreElements();){
-                int i = E.nextElement();
-                pages.get(i).printPageRank(i);
+            for(Enumeration<String> E = pages.keys(); E.hasMoreElements();){
+                String i = E.nextElement();
+                pages.get(i).printScores(i);
             }
             step++;
         }
         
+        
         System.out.println(damping);
+        System.out.println(sinks.toString());
     }
 
-    public static void parseInput(int node1, int node2){
+    public static void parseInput(String node1, String node2){
 
         // If the outgoing link is not present in the hashTable.
         if (pages.get(node1) == null){
@@ -99,36 +109,32 @@ class rankpage {
 
     public static void initializeScore(){
         numberOfNodes = pages.size();
-        for(Enumeration<Integer> E = pages.keys(); E.hasMoreElements();){
-            int i = E.nextElement();
+        for(Enumeration<String> E = pages.keys(); E.hasMoreElements();){
+            String i = E.nextElement();
             float f = 1.0f / numberOfNodes;
             pages.get(i).SetInitialScore(f);
         }
     }
 
     public static void iterate(){
-
-        //First, we need to reset each node's new score to 0, so that we can accumulate the next
-        //iteration's score properly
-
-        for(Enumeration<Integer> F = pages.keys(); F.hasMoreElements();){
-            int i = F.nextElement();
-            pages.get(i).newValue = 0.0f;
-        }
         
         handleSinks();
 
         //We then iterate through the list of keys to get their list of nodes they are pointed to
         //taking into account their size as well
-        for(Enumeration<Integer> E = pages.keys(); E.hasMoreElements();){
-            int i = E.nextElement();
+        for(Enumeration<String> E = pages.keys(); E.hasMoreElements();){
+            String i = E.nextElement();
             ArrayList outDegreeNodes = pages.get(i).edgeTo;
             int arraySize = outDegreeNodes.size();
+
+            if(sinks.contains(i)){
+                continue;
+            }
 
             //We iterate through the list of nodes B that the current node A is pointing to.
             //For each node B in this list, distribute A's score divided by the number of nodes B in the array
             for(int j = 0; j < arraySize; j++){
-                float scoreOfNode = pages.get(outDegreeNodes.get(j)).oldValue;
+                float scoreOfNode = pages.get(i).oldValue;
                 pages.get(outDegreeNodes.get(j)).newValue += scoreOfNode/arraySize;
             }
         }
@@ -136,10 +142,13 @@ class rankpage {
         //After we calculate all of this, we take each key and update their current score to
         //the new score, applying our damping factor to this
         boolean isOverMargin = false;
-        for(Enumeration<Integer> K = pages.keys(); K.hasMoreElements();){
-            int i = K.nextElement();
+        for(Enumeration<String> K = pages.keys(); K.hasMoreElements();){
+            String i = K.nextElement();
             PageRank node = pages.get(i);
-            float temp = Float.valueOf(String.format("%.2f", damping + (d * node.newValue)));
+            float temp = damping + (d * node.newValue);
+
+            //Here, we check if the difference is greater than the margin of error
+            // to determine if we need to stop prematurely.
             if(Math.abs(node.oldValue - temp) >= MARGIN){
                 isOverMargin = true;
             }
@@ -154,46 +163,46 @@ class rankpage {
         //updated ranks"
 
         float sum = 0.0f;
-        int sinkSize = sinks.size();
-        if(sinkSize != 0){
-            for(int i = 0; i < sinkSize; i++){
-                float score = pages.get(sinks.get(i)).oldValue / (numberOfNodes + (pages.get(sinks.get(i)).oldValue));
-                pages.get(sinks.get(i)).oldValue = score;
-                sum += score;
-            }
+        for(int i = 0; i < sinks.size(); i++){
+            
         }
         
         //For every page in the graph, set the newrank to be the sum of the
         //sinks' updated ranks
 
-        for(Enumeration<Integer> F = pages.keys(); F.hasMoreElements();){
-            int i = F.nextElement();
+        /* 
+        for(Enumeration<String> F = pages.keys(); F.hasMoreElements();){
+            String i = F.nextElement();
             pages.get(i).newValue = sum;
         }
+        */
     }
 }
 
 class PageRank {
     float oldValue;
     float newValue;
-    ArrayList edgeTo;
+    ArrayList edgeTo = new ArrayList();
 
-    public PageRank(int pointsTo){
+    public PageRank(String pointsTo){
         newValue = 0.0f;
-        edgeTo = new ArrayList();
         edgeTo.add(pointsTo);
     }
 
-    public void AddNode(int node){
+    public void AddNode(String node){
         edgeTo.add(node);
     }
 
     public void SetInitialScore(float n){
-        oldValue = Float.valueOf(String.format("%.2f", n));
+        oldValue = n;
     }
 
-    public void printPageRank(int key){
+    public void printPageRank(String key){
         System.out.println("Key: " + key + " -- {oldValue : " + oldValue +
          " | newValue : " + newValue + " | Edges to : " + edgeTo.toString() + "}");
+    }
+
+    public void printScores(String key){
+        System.out.println("Key: " + key + " -- " + oldValue);
     }
 }
