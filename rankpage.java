@@ -11,15 +11,16 @@ import java.util.Iterator;
 
 class rankpage {
     
-    private static final String FILENAME = "polblogs.csv";
+    private static final String FILENAME = "dolphins.csv";
     private static final float d = 0.85f;
     private static final float MARGIN = 0.01f;
 
     static int numberOfNodes = 0;
-    static ArrayList sinks = new ArrayList<>();
     static float damping;
     static boolean flag;
+    static ArrayList<String> printList = new ArrayList<String>();
     static Dictionary<String, PageRank> pages = new Hashtable<String, PageRank>();
+    static Dictionary<String, Sink> sinks = new Hashtable<String, Sink>();
 
     /**
      * @param args
@@ -55,43 +56,41 @@ class rankpage {
         initializeScore();
         damping = (1.0f - d)/numberOfNodes;
 
-        //Then, we want to curate a list of sinks (nodes with no out degrees)
+        //Then, we want to curate a dictionary of sinks (nodes with no out degrees)
         //So we don't have to keep calculating them in the future
         for(Enumeration<String> E = pages.keys(); E.hasMoreElements();){
             String i = E.nextElement();
-            for(int j = 0; j < pages.get(i).edgeTo.size(); j++){
-                if(pages.get(pages.get(i).edgeTo.get(j)) == null){
-                    sinks.add(j);
+            PageRank page = pages.get(i);
+            for(int j = 0; j < page.edgeTo.size(); j++){
+                String sinkString = (String) page.edgeTo.get(j);
+                if(pages.get(sinkString) == null){
+                    if(sinks.get(sinkString) == null){
+                        Sink PRSink = new Sink(sinkString);
+                        sinks.put(sinkString, PRSink);
+                    }
                 }
             }
-        }
-
-        
+        }        
 
         //Here's where the magic happens: We want to walk through each iteration
         //to update the scores.  The algorithm converges when either 1) we go through
         // 100 iterations or 2) the difference between the old score and the new score 
         //has an error margin less than 0.01
 
-        for(Enumeration<String> E = pages.keys(); E.hasMoreElements();){
-            String i = E.nextElement();
-            //pages.get(i).printScores(i);
-        }
-
         int step = 1;
         while(step <= 100 && flag){
             System.out.println("Step " + step + ":\n");
             iterate();
+            /*
             for(Enumeration<String> E = pages.keys(); E.hasMoreElements();){
                 String i = E.nextElement();
                 pages.get(i).printScores(i);
             }
+            */
             step++;
         }
+        rankNodes();
         
-        
-        System.out.println(damping);
-        System.out.println(sinks.toString());
     }
 
     public static void parseInput(String node1, String node2){
@@ -127,15 +126,16 @@ class rankpage {
             ArrayList outDegreeNodes = pages.get(i).edgeTo;
             int arraySize = outDegreeNodes.size();
 
-            if(sinks.contains(i)){
-                continue;
-            }
-
             //We iterate through the list of nodes B that the current node A is pointing to.
             //For each node B in this list, distribute A's score divided by the number of nodes B in the array
             for(int j = 0; j < arraySize; j++){
                 float scoreOfNode = pages.get(i).oldValue;
-                pages.get(outDegreeNodes.get(j)).newValue += scoreOfNode/arraySize;
+                if(sinks.get(outDegreeNodes.get(j)) != null){
+                    sinks.get(outDegreeNodes.get(j)).value += scoreOfNode/arraySize;
+                }
+                else{
+                    pages.get(outDegreeNodes.get(j)).newValue += scoreOfNode/arraySize;
+                }
             }
         }
 
@@ -163,19 +163,63 @@ class rankpage {
         //updated ranks"
 
         float sum = 0.0f;
-        for(int i = 0; i < sinks.size(); i++){
-            
+        for(Enumeration<String> S = sinks.keys(); S.hasMoreElements();){
+            String s = S.nextElement();
+            Sink t = sinks.get(s);
+            t.value = t.value / (pages.size() + sinks.size());
+            sum += t.value;
+
         }
         
         //For every page in the graph, set the newrank to be the sum of the
         //sinks' updated ranks
 
-        /* 
-        for(Enumeration<String> F = pages.keys(); F.hasMoreElements();){
-            String i = F.nextElement();
-            pages.get(i).newValue = sum;
+        for(Enumeration<String> P = pages.keys(); P.hasMoreElements();){
+            String p = P.nextElement();
+            pages.get(p).newValue = sum;
         }
-        */
+
+        for(Enumeration<String> S = sinks.keys(); S.hasMoreElements();){
+            String s = S.nextElement();
+            sinks.get(s).value = sum;
+        }
+    }
+
+    public static void rankNodes(){
+        while(!pages.isEmpty() || !sinks.isEmpty()){
+            float maxVal = 0.0f;
+            String maxKey = "";
+            boolean isSink = false;
+            for(Enumeration<String> P = pages.keys(); P.hasMoreElements();){
+                String i = P.nextElement();
+                if(pages.get(i).oldValue > maxVal){
+                    maxVal = pages.get(i).oldValue;
+                    maxKey = i;
+                    isSink = false;
+                }
+            }
+            for(Enumeration<String> S = sinks.keys(); S.hasMoreElements();){
+                String i = S.nextElement();
+                if(sinks.get(i).value > maxVal){
+                    maxVal = sinks.get(i).value;
+                    maxKey = i;
+                    isSink = true;
+                }
+            }
+
+            if(isSink){
+                printList.add(maxKey);
+                sinks.remove(maxKey);
+            }
+            else{
+                printList.add(maxKey);
+                pages.remove(maxKey);
+            }
+            
+        }
+        for(int i = 0; i < printList.size(); i++){
+            System.out.println(printList.get(i));
+        }
     }
 }
 
@@ -204,5 +248,13 @@ class PageRank {
 
     public void printScores(String key){
         System.out.println("Key: " + key + " -- " + oldValue);
+    }
+}
+
+class Sink {
+    float value;
+
+    public Sink(String node){
+        value = 0.0f;
     }
 }
