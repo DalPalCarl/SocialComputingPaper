@@ -11,7 +11,7 @@ import java.util.Iterator;
 
 class rankpage {
     
-    private static final String FILENAME = "dolphins.csv";
+    private static final String FILENAME = "polblogs.csv";
     private static final float d = 0.85f;
     private static final float MARGIN = 0.01f;
 
@@ -78,8 +78,7 @@ class rankpage {
         //has an error margin less than 0.01
 
         int step = 1;
-        while(step <= 100 && flag){
-            System.out.println("Step " + step + ":\n");
+        while(step <= 100){
             iterate();
             /*
             for(Enumeration<String> E = pages.keys(); E.hasMoreElements();){
@@ -185,11 +184,18 @@ class rankpage {
         }
     }
 
+    //Our final step is to take our curated list after we've made all of
+    //the iterations and have converged on final values and print them out.
+    //This is done by comparing the two dictionaries (pages and sinks), finding
+    //the maximum of either, and (when we have found the maximum value) remove
+    //that node from the list to append it to the printList array.
     public static void rankNodes(){
-        while(!pages.isEmpty() || !sinks.isEmpty()){
+        while(!pages.isEmpty() || !sinks.isEmpty()){ //i.e. while there are still elements in pages and sinks
             float maxVal = 0.0f;
             String maxKey = "";
             boolean isSink = false;
+
+            //Iterate through pages first
             for(Enumeration<String> P = pages.keys(); P.hasMoreElements();){
                 String i = P.nextElement();
                 if(pages.get(i).oldValue > maxVal){
@@ -198,6 +204,8 @@ class rankpage {
                     isSink = false;
                 }
             }
+
+            //Iterate through sinks second
             for(Enumeration<String> S = sinks.keys(); S.hasMoreElements();){
                 String i = S.nextElement();
                 if(sinks.get(i).value > maxVal){
