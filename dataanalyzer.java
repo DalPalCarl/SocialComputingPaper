@@ -15,6 +15,7 @@ class dataanalyzer {
     private static final float d = 0.85f;
     private static final float MARGIN = 0.01f;
 
+    static int numberOfEdges = 0;
     static int numberOfNodes = 0;
     static ArrayList sinks = new ArrayList<>();
     static float damping;
@@ -33,11 +34,9 @@ class dataanalyzer {
             reader = new BufferedReader(new FileReader(FILENAME));
             while ((line = reader.readLine()) != null)    {  
 
-                // Count nodes
-                // Count edges
-
                 String[] code = line.split(splitBy);    // use comma as separator
                 parseInput(Integer.parseInt(code[0]), Integer.parseInt(code[2]));
+                numberOfEdges = numberOfEdges + 1;
             }
 
         
@@ -101,10 +100,16 @@ class dataanalyzer {
         }
     }
 
+    // Search for diameter and average path length at same time.
+
     public static void initializeScore(){
         numberOfNodes = pages.size();
-        String nodeString = "nodes: ";
-        System.println(nodeString + numberOfNodes);
+        System.println("nodes: " + numberOfNodes);
+        System.print(", edges: " + numberOfEdges);
+        System.print(", directed");
+        System.println("Number of components: 1");
+        System.println("Density: " + (numberOfEdges / (numberOfNodes * (numberOfNodes - 1))) );
+        // Density = number of edges / nn * (nn -1)
         for(Enumeration<Integer> E = pages.keys(); E.hasMoreElements();){
             int i = E.nextElement();
             float f = 1.0f / numberOfNodes;
@@ -122,7 +127,7 @@ class dataanalyzer {
             pages.get(i).newValue = 0.0f;
         }
         
-        handleSinks();
+        //handleSinks();
 
         //We then iterate through the list of keys to get their list of nodes they are pointed to
         //taking into account their size as well
@@ -154,29 +159,29 @@ class dataanalyzer {
         flag = isOverMargin;
     }
 
-    public static void handleSinks(){
-        //"For each sink, set its updated rank to be the sink's previous
-        //rank divided by the number of total pages and sum all of the sink's
-        //updated ranks"
+    // public static void handleSinks(){
+    //     //"For each sink, set its updated rank to be the sink's previous
+    //     //rank divided by the number of total pages and sum all of the sink's
+    //     //updated ranks"
 
-        float sum = 0.0f;
-        int sinkSize = sinks.size();
-        if(sinkSize != 0){
-            for(int i = 0; i < sinkSize; i++){
-                float score = pages.get(sinks.get(i)).oldValue / (numberOfNodes + (pages.get(sinks.get(i)).oldValue));
-                pages.get(sinks.get(i)).oldValue = score;
-                sum += score;
-            }
-        }
+    //     float sum = 0.0f;
+    //     int sinkSize = sinks.size();
+    //     if(sinkSize != 0){
+    //         for(int i = 0; i < sinkSize; i++){
+    //             float score = pages.get(sinks.get(i)).oldValue / (numberOfNodes + (pages.get(sinks.get(i)).oldValue));
+    //             pages.get(sinks.get(i)).oldValue = score;
+    //             sum += score;
+    //         }
+    //     }
         
-        //For every page in the graph, set the newrank to be the sum of the
-        //sinks' updated ranks
+    //     //For every page in the graph, set the newrank to be the sum of the
+    //     //sinks' updated ranks
 
-        for(Enumeration<Integer> F = pages.keys(); F.hasMoreElements();){
-            int i = F.nextElement();
-            pages.get(i).newValue = sum;
-        }
-    }
+    //     for(Enumeration<Integer> F = pages.keys(); F.hasMoreElements();){
+    //         int i = F.nextElement();
+    //         pages.get(i).newValue = sum;
+    //     }
+    // }
 }
 
 class PageRank {
