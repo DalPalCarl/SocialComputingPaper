@@ -5,22 +5,20 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;  
 
 
 class dataanalyzer {
-    
-    private static final String FILENAME = "polblogs.csv";
-    private static final float d = 0.85f;
-    private static final float MARGIN = 0.01f;
+
+    private static final String FILENAME = "nodes_1000.csv";
 
     static int numberOfEdges = 0;
     static int numberOfNodes = 0;
-    static ArrayList sinks = new ArrayList<>();
-    static float damping;
-    static boolean flag;
-    static Dictionary<Integer, PageRank> pages = new Hashtable<Integer, PageRank>();
+    static int next_id = 0;
+    static HashMap<Integer,Node> nodes = new HashMap<>();    // nodes: keeps track of each nodes' neighbors
+    static HashMap<String,Integer> hm_ids = new HashMap<>(); // hm_ids: keeps track of which strings have which integer ids associated
 
     /**
      * @param args
@@ -35,7 +33,7 @@ class dataanalyzer {
             while ((line = reader.readLine()) != null)    {  
 
                 String[] code = line.split(splitBy);    // use comma as separator
-                parseInput(Integer.parseInt(code[0]), Integer.parseInt(code[2]));
+                parseInput(code[0], code[1]);
                 numberOfEdges = numberOfEdges + 1;
             }
 
@@ -49,31 +47,15 @@ class dataanalyzer {
                 e.printStackTrace();
             }
         }
-       
-        //First, we set all scores to be the same
-        //We also want to set our global damping variable, since we have
-        //calculated the total number of nodes after parsing the input
-
-        flag = true;
-        initializeScore();
-        damping = (1.0f - d)/numberOfNodes;
-
-        //Then, we want to curate a list of sinks (nodes with no out degrees)
-        //So we don't have to keep calculating them in the future
-        for(Enumeration<Integer> E = pages.keys(); E.hasMoreElements();){
-            int i = E.nextElement();
-            if(pages.get(i).edgeTo.size() < 1){
-                sinks.add(i);
-            }
-        }
 
         //Here's where the magic happens: We want to walk through each iteration
         //to update the scores.  The algorithm converges when either 1) we go through
         // 100 iterations or 2) the difference between the old score and the new score 
         //has an error margin less than 0.01
 
-        int step = 1;
-        while(step <= 100 && flag){
+        printScore();
+        /*
+        while(step <= 100){
             System.out.println("Step " + step + ":\n");
             iterate();
 
@@ -83,40 +65,49 @@ class dataanalyzer {
             }
             step++;
         }
-        
-        System.out.println(damping);
+        */
     }
 
-    public static void parseInput(int node1, int node2){
+    public static void parseInput(String url1, String url2){
 
-        // If the outgoing link is not present in the hashTable.
-        if (pages.get(node1) == null){
-            PageRank valueData = new PageRank(node2);
-            pages.put(node1, valueData);
-        } 
-        // If the outgoing link is present
-        else{
-            pages.get(node1).AddNode(node2);
+        // If the link is not present in the hashTable.
+
+        if (hm_ids.get(url1) == null){
+            hm_ids.put(url1, next_id);
+            //If there is no id for a link, then it does not exist in our nodes hm either
+            Node valueData = new Node(url1);
+            nodes.put(next_id, valueData);
+            next_id += 1;
         }
+
+        //In case we need to add the second link as well
+        if(hm_ids.get(url2) == null){
+            hm_ids.put(url2, next_id);
+            //If there is no id for a link, then it does not exist in our nodes hm either
+            Node valueData = new Node(url2);
+            nodes.put(next_id, valueData);
+            next_id += 1;
+        }
+
+        // If both links are present in hm_ids, both links are neighbors to each other
+        int link1 = hm_ids.get(url1);
+        int link2 = hm_ids.get(url2);
+
+        nodes.get(link1).AddNeighbor(link2);
+        nodes.get(link2).AddNeighbor(link1);
     }
 
     // Search for diameter and average path length at same time.
 
-    public static void initializeScore(){
-        numberOfNodes = pages.size();
-        System.println("nodes: " + numberOfNodes);
-        System.print(", edges: " + numberOfEdges);
-        System.print(", directed");
-        System.println("Number of components: 1");
-        System.println("Density: " + (numberOfEdges / (numberOfNodes * (numberOfNodes - 1))) );
-        // Density = number of edges / nn * (nn -1)
-        for(Enumeration<Integer> E = pages.keys(); E.hasMoreElements();){
-            int i = E.nextElement();
-            float f = 1.0f / numberOfNodes;
-            pages.get(i).SetInitialScore(f);
-        }
+    public static void printScore(){
+        numberOfNodes = nodes.size();
+        System.out.print(numberOfNodes + " nodes, ");
+        System.out.print(numberOfEdges + " edges, ");
+        System.out.print("undirected\n");
+        System.out.println("Number of Components: 1");
+        System.out.println("Density: " + (2.0 * numberOfEdges) / (numberOfNodes * (numberOfNodes - 1.0)));
     }
-
+/*
     public static void iterate(){
 
         //First, we need to reset each node's new score to 0, so that we can accumulate the next
@@ -156,55 +147,19 @@ class dataanalyzer {
             }
             node.oldValue = temp;
         }
-        flag = isOverMargin;
     }
-
-    // public static void handleSinks(){
-    //     //"For each sink, set its updated rank to be the sink's previous
-    //     //rank divided by the number of total pages and sum all of the sink's
-    //     //updated ranks"
-
-    //     float sum = 0.0f;
-    //     int sinkSize = sinks.size();
-    //     if(sinkSize != 0){
-    //         for(int i = 0; i < sinkSize; i++){
-    //             float score = pages.get(sinks.get(i)).oldValue / (numberOfNodes + (pages.get(sinks.get(i)).oldValue));
-    //             pages.get(sinks.get(i)).oldValue = score;
-    //             sum += score;
-    //         }
-    //     }
-        
-    //     //For every page in the graph, set the newrank to be the sum of the
-    //     //sinks' updated ranks
-
-    //     for(Enumeration<Integer> F = pages.keys(); F.hasMoreElements();){
-    //         int i = F.nextElement();
-    //         pages.get(i).newValue = sum;
-    //     }
-    // }
+    */
 }
 
-class PageRank {
-    float oldValue;
-    float newValue;
-    ArrayList edgeTo;
+class Node {
+    String og_url;
+    ArrayList<Integer> neighbors;
 
-    public PageRank(int pointsTo){
-        newValue = 0.0f;
-        edgeTo = new ArrayList();
-        edgeTo.add(pointsTo);
-    }
+    public Node(String link){
+        og_url = link;
+        neighbors = new ArrayList<>();    }
 
-    public void AddNode(int node){
-        edgeTo.add(node);
-    }
-
-    public void SetInitialScore(float n){
-        oldValue = Float.valueOf(String.format("%.2f", n));
-    }
-
-    public void printPageRank(int key){
-        System.out.println("Key: " + key + " -- {oldValue : " + oldValue +
-         " | newValue : " + newValue + " | Edges to : " + edgeTo.toString() + "}");
+    public void AddNeighbor(int url_id){
+        neighbors.add(url_id);
     }
 }
