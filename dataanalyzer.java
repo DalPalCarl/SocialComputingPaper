@@ -52,20 +52,7 @@ class dataanalyzer {
         //to update the scores.  The algorithm converges when either 1) we go through
         // 100 iterations or 2) the difference between the old score and the new score 
         //has an error margin less than 0.01
-
         printScore();
-        /*
-        while(step <= 100){
-            System.out.println("Step " + step + ":\n");
-            iterate();
-
-            for(Enumeration<Integer> E = pages.keys(); E.hasMoreElements();){
-                int i = E.nextElement();
-                pages.get(i).printPageRank(i);
-            }
-            step++;
-        }
-        */
     }
 
     public static void parseInput(String url1, String url2){
@@ -97,8 +84,9 @@ class dataanalyzer {
         nodes.get(link2).AddNeighbor(link1);
     }
 
-    // Search for diameter and average path length at same time.
-
+    /*
+     * Prints the important data out.
+     */
     public static void printScore(){
         numberOfNodes = nodes.size();
         System.out.print(numberOfNodes + " nodes, ");
@@ -107,48 +95,6 @@ class dataanalyzer {
         System.out.println("Number of Components: 1");
         System.out.println("Density: " + (2.0 * numberOfEdges) / (numberOfNodes * (numberOfNodes - 1.0)));
     }
-/*
-    public static void iterate(){
-
-        //First, we need to reset each node's new score to 0, so that we can accumulate the next
-        //iteration's score properly
-
-        for(Enumeration<Integer> F = pages.keys(); F.hasMoreElements();){
-            int i = F.nextElement();
-            pages.get(i).newValue = 0.0f;
-        }
-        
-        //handleSinks();
-
-        //We then iterate through the list of keys to get their list of nodes they are pointed to
-        //taking into account their size as well
-        for(Enumeration<Integer> E = pages.keys(); E.hasMoreElements();){
-            int i = E.nextElement();
-            ArrayList outDegreeNodes = pages.get(i).edgeTo;
-            int arraySize = outDegreeNodes.size();
-
-            //We iterate through the list of nodes B that the current node A is pointing to.
-            //For each node B in this list, distribute A's score divided by the number of nodes B in the array
-            for(int j = 0; j < arraySize; j++){
-                float scoreOfNode = pages.get(i).oldValue;
-                pages.get(outDegreeNodes.get(j)).newValue += scoreOfNode/arraySize;
-            }
-        }
-
-        //After we calculate all of this, we take each key and update their current score to
-        //the new score, applying our damping factor to this
-        boolean isOverMargin = false;
-        for(Enumeration<Integer> K = pages.keys(); K.hasMoreElements();){
-            int i = K.nextElement();
-            PageRank node = pages.get(i);
-            float temp = Float.valueOf(String.format("%.2f", damping + (d * node.newValue)));
-            if(Math.abs(node.oldValue - temp) >= MARGIN){
-                isOverMargin = true;
-            }
-            node.oldValue = temp;
-        }
-    }
-    */
 }
 
 class Node {
