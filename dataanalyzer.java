@@ -19,6 +19,7 @@ class dataanalyzer {
     static int next_id = 0;
     static HashMap<Integer,Node> nodes = new HashMap<>();    // nodes: keeps track of each nodes' neighbors
     static HashMap<String,Integer> hm_ids = new HashMap<>(); // hm_ids: keeps track of which strings have which integer ids associated
+    static ArrayList<Integer> alreadyTracked = new ArrayList();
 
     /**
      * @param args
@@ -53,6 +54,7 @@ class dataanalyzer {
         // 100 iterations or 2) the difference between the old score and the new score 
         //has an error margin less than 0.01
         printScore();
+        findDiameter(nodes.get(0), 0);
     }
 
     public static void parseInput(String url1, String url2){
@@ -94,6 +96,17 @@ class dataanalyzer {
         System.out.print("undirected\n");
         System.out.println("Number of Components: 1");
         System.out.println("Density: " + (2.0 * numberOfEdges) / (numberOfNodes * (numberOfNodes - 1.0)));
+    }
+
+    public static Integer findDiameter(Node domain, int maxDepth){
+        for (int i = 0; i < domain.neighbors.size(); i++) {
+            if(!(alreadyTracked.contains(domain.neighbors[i]))){
+                if (findDiameter(domain.neighbors[i], maxDepth + 1) > maxDepth) {
+                    maxDepth = findDiameter(nodes.get(domain.neighbors[i]), maxDepth + 1);
+                }
+            }
+        }
+        return maxDepth;
     }
 }
 
