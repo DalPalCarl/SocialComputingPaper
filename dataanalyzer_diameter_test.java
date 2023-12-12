@@ -20,6 +20,7 @@ class dataanalyzer {
     static int diameter = 0;
     static HashMap<Integer,Node> nodes = new HashMap<>();    // nodes: keeps track of each nodes' neighbors
     static HashMap<String,Integer> hm_ids = new HashMap<>(); // hm_ids: keeps track of which strings have which integer ids associated
+    static SortedSet<Integer> coefficientClusters = new TreeSet<>(); // Top 5 clusters
     static ArrayList<Integer> alreadyVisited = new ArrayList<>();
 
     /**
@@ -91,6 +92,7 @@ class dataanalyzer {
         System.out.println("Number of Components: 1");
         System.out.println("Density: " + (2.0 * numberOfEdges) / (numberOfNodes * (numberOfNodes - 1.0)));
         System.out.println("Diameter: " + diameter);
+        System.out.println("Top 5 Clustering Coefficients:" + coefficientClusters);
     }
 
     public static int calc_diameter(int link_id, int maxDepth){
@@ -110,6 +112,37 @@ class dataanalyzer {
         else{
             return 0;
         }
+    }
+
+    public static void calc_clustering_coefficient() {
+        for (int i = 0; i < nodes.size(); i++) {
+            Array nodeNeighbors = nodes.get(i).neighbors;
+            int denominator = (nodeNeighbors.size() * nodeNeighbors.size() - 1) / 2;
+            int numerator = 0;
+            for(int j = 0; j < nodeNeighbors.size(); j++) {
+                Array secondaryNeighbors = nodes.get(nodeNeighbors[j]).neighbors;
+                numerator = compareArrays(nodeNeighbors, secondaryNeighbors);
+            }
+            int clusteringCoefficient = numerator / denominator;
+            if (coefficientClusters.size() < 5) {
+                coefficientClusters.add(clusteringCoefficient);
+            } else if (clusteringCoefficient > coefficientClusters.first()) {
+                coefficientClusters.remove(coefficientClusters.first());
+                coefficientClusters.add(clusteringCoefficient);
+            }
+        }
+    }
+
+    public static int compareArrays(int[] array1, int[] array2) {
+        int connections = 0;
+        for (int q = 0; q < array1.length; q++) {
+            for (int p = 0; p < array2.length; p++) {
+                if (array1[q] == array2[p]) {
+                    connections = connections + 1;
+                }
+            }
+        }
+        return connections;
     }
 }
 
