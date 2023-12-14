@@ -17,7 +17,7 @@ class dataanalyzer {
     static int diameter = 0;
     static HashMap<Integer,Node> nodes = new HashMap<>();    // nodes: keeps track of each nodes' neighbors
     static HashMap<String,Integer> hm_ids = new HashMap<>(); // hm_ids: keeps track of which strings have which integer ids associated
-    static ArrayList<Integer> top5Friends = new ArrayList<>();
+    static ArrayList<Integer> top5Friends = new ArrayList<>(); // A list of 5 node IDs which represent
     static int sumOfPaths = 0;
 
     /**
@@ -48,7 +48,7 @@ class dataanalyzer {
             }
         }
 
-        numberOfNodes = nodes.size();
+        numberOfNodes = nodes.size(); // Initialize numberOfNodes after we calculate the nodes of our graph
 
         ArrayList<ArrayList<Integer>> shortestPaths = generatePaths();
         diameter = findDiameter(shortestPaths);
@@ -105,8 +105,8 @@ class dataanalyzer {
     
     }
 
-    // We calculate diameter by recursively searching the depth of the graph,
-    // since everything stems from the main domain.
+    // We find the diameter by finding the maximum size of any of our
+    // shortest paths we generated
     public static int findDiameter(ArrayList<ArrayList<Integer>> list){
         int maxLength = 0;
         for(int i = 0; i < list.size(); i++){
@@ -118,6 +118,8 @@ class dataanalyzer {
         return maxLength;
     }
 
+    // We must generate a list of the shortest paths between any two nodes in our
+    // graph using a Breadth-First-Search algorithm
     public static ArrayList<ArrayList<Integer>> generatePaths(){
         ArrayList<ArrayList<Integer>> pathsList = new ArrayList<>();
 
@@ -133,6 +135,7 @@ class dataanalyzer {
         return pathsList;
     }
 
+    //Here is the BFS algorithm function, which calls two helper functions
     public static ArrayList<Integer> bfs(int start, int end){
         ArrayList<Integer> prev = bfs_solve(start);
 
@@ -140,19 +143,28 @@ class dataanalyzer {
     }
 
 
+    // Helper function 1: generate a list of size n (numberOfNodes)
+    //    -- Each index represents the node ID in our nodes HashMap
+    //    -- Each entry will store the index of whichever node points to it in our
+    //       supposed shortest path
     public static ArrayList<Integer> bfs_solve(int start){
+        //Use a queue to keep track of which nodes still need to be searched
         Queue<Integer> q = new PriorityQueue<Integer>();
         q.add(start);
 
         ArrayList<Boolean> visited = new ArrayList<>();
         ArrayList<Integer> prev = new ArrayList<>();
+
+        //Initializing each ArrayList
         for(int i = 0; i < numberOfNodes; i++){
             visited.add(false);
             prev.add(null);
         }
-        visited.set(start, true);
+        visited.set(start, true); //Our starting node is obviously already visited, so set it as so
 
         while(!q.isEmpty()){
+            //for each node in our queue, we get its neighbors, check if any of them have been visited,
+            //add them to our queue to be searched later, and set its neighbor to point at our current node
             int node = q.remove();
             ArrayList<Integer> neighbs = nodes.get(node).neighbors;
 
@@ -164,29 +176,39 @@ class dataanalyzer {
                 }
             }
         }
-
+        //prev will contain our shortest path, so we send it back for our second helper function
         return prev;
     }
 
+    // Helper function 2: Construct an ArrayList containing our final path from start to end
+    //    -- We work backwards from the end of the list, tracing the indices back to start
     public static ArrayList<Integer> bfs_reconstruct(int start, int end, ArrayList<Integer> prev){
         ArrayList<Integer> path = new ArrayList<>();
         for(int at = end; prev.get(at) != null; at = prev.get(at)){
             path.add(at);
         }
 
+        //If our path points back to the start successfully, then return the path
         if(prev.get(path.get(path.size()-1)) == start){
             return path;
         }
+
+        //If not, then we return an empty list
         ArrayList<Integer> empty = new ArrayList<>();
         return empty;
     }
 
+    // Here we take our list of shortest paths, iterate through each node ID and see how many
+    // times a given node acts as a bridge in a path.  This number will be the number of friends.
     public static void calculateFriends(ArrayList<ArrayList<Integer>> list){
         for(int i = 0; i < nodes.size(); i++){
             Node node_to_find = nodes.get(i);
 
+            //Iterate through list of paths
             for(ArrayList<Integer> path : list){
-                if(path.contains(i)){
+
+                //We don't want to count if the node is pointing to itself (not a bridge)
+                if(path.contains(i) && path.get(0) != i){
                     node_to_find.friends += 1.0f;
                 }
             }
@@ -194,6 +216,9 @@ class dataanalyzer {
         }
     }
 
+    // Similar to finding the diameter, we calculate the node with the maximum friend number.
+    // Since we are looking for 5 numbers, we can repeat this process 5 times, removing nodes that
+    // are already in our top 5 list
     public static void topFiveFriends(){
         while(top5Friends.size() < 5){
             int node = -1;
