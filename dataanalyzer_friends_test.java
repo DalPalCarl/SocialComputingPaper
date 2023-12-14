@@ -1,13 +1,10 @@
 import java.io.BufferedReader;  
 import java.io.FileReader;  
 import java.io.IOException;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Dictionary;
-import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.Iterator;  
+import java.util.PriorityQueue;
+import java.util.Queue;
 
 
 class dataanalyzer {
@@ -20,8 +17,7 @@ class dataanalyzer {
     static int diameter = 0;
     static HashMap<Integer,Node> nodes = new HashMap<>();    // nodes: keeps track of each nodes' neighbors
     static HashMap<String,Integer> hm_ids = new HashMap<>(); // hm_ids: keeps track of which strings have which integer ids associated
-    static ArrayList<Integer> alreadyVisited = new ArrayList<>();
-
+    static ArrayList<Integer> top5Friends = new ArrayList<>();
     static int sumOfPaths = 0;
 
     /**
@@ -51,10 +47,14 @@ class dataanalyzer {
                 e.printStackTrace();
             }
         }
-        alreadyVisited.add(0);
-        diameter = calc_diameter(0, 0);
+
+        numberOfNodes = nodes.size();
+
+        ArrayList<ArrayList<Integer>> shortestPaths = generatePaths();
+        diameter = findDiameter(shortestPaths);
+        calculateFriends(shortestPaths);
+        topFiveFriends();
         printScore();
-        generatePaths();
     }
 
     public static void parseInput(String url1, String url2){
@@ -87,36 +87,35 @@ class dataanalyzer {
     }
 
     public static void printScore(){
-        numberOfNodes = nodes.size();
         System.out.print(numberOfNodes + " nodes, ");
         System.out.print(numberOfEdges + " edges, ");
         System.out.print("directed\n");
         System.out.println("Number of Components: 1");
-        System.out.println("Density: " + (2.0 * numberOfEdges) / (numberOfNodes * (numberOfNodes - 1.0)));
-        System.out.println("Diameter: " + diameter);
+        System.out.println("Density: " + numberOfEdges / (numberOfNodes * (numberOfNodes - 1.0)));
+        System.out.println("Diameter: " + diameter + "\n");
+
+        System.out.println("Top 5 Friends:");
+        System.out.println("1 (" + top5Friends.get(0) + ", " + nodes.get(top5Friends.get(0)).og_url + " , " + nodes.get(top5Friends.get(0)).friends + ")");
+        System.out.println("2 (" + top5Friends.get(1) + ", " + nodes.get(top5Friends.get(1)).og_url + " , " + nodes.get(top5Friends.get(1)).friends + ")");
+        System.out.println("3 (" + top5Friends.get(2) + ", " + nodes.get(top5Friends.get(2)).og_url + " , " + nodes.get(top5Friends.get(2)).friends + ")");
+        System.out.println("4 (" + top5Friends.get(3) + ", " + nodes.get(top5Friends.get(3)).og_url + " , " + nodes.get(top5Friends.get(3)).friends + ")");
+        System.out.println("5 (" + top5Friends.get(4) + ", " + nodes.get(top5Friends.get(4)).og_url + " , " + nodes.get(top5Friends.get(4)).friends + ")");
+    
+    
+    
     }
 
     // We calculate diameter by recursively searching the depth of the graph,
     // since everything stems from the main domain.
-    public static int calc_diameter(int link_id, int maxDepth){
-
-        boolean noMoreNodes = true; // Set a flag to check if there are no more nodes that aren't already visited
-        Node sampleNode = nodes.get(link_id);
-
-        //iterate through each node's list of neighbors
-        for(int i = 0; i < sampleNode.neighbors.size(); i++){
-            if(!alreadyVisited.contains(sampleNode.neighbors.get(i))){//not already visited
-                noMoreNodes = false;
-                alreadyVisited.add(sampleNode.neighbors.get(i));
-                return calc_diameter(sampleNode.neighbors.get(i), maxDepth+1);
+    public static int findDiameter(ArrayList<ArrayList<Integer>> list){
+        int maxLength = 0;
+        for(int i = 0; i < list.size(); i++){
+            ArrayList<Integer> temp = list.get(i);
+            if(temp.size() > maxLength){
+                maxLength = temp.size();
             }
         }
-        if(noMoreNodes){
-            return maxDepth;
-        }
-        else{
-            return 0;
-        }
+        return maxLength;
     }
 
     public static ArrayList<ArrayList<Integer>> generatePaths(){
@@ -125,14 +124,7 @@ class dataanalyzer {
         for(int i = 0; i < numberOfNodes; i++){
             for(int j = 0; j < numberOfNodes; j++){
                 if(i != j){
-                    ArrayList<Integer> temp = new ArrayList<>();
-                    ArrayList<Integer> path = findPath(temp, i, j);
-                    System.out.print("[");
-                    for(int z = 0; z < path.size(); z++){
-                        System.out.print(path.get(z));
-                    }
-                    System.out.print("]");
-                    sumOfPaths += path.size();
+                    ArrayList<Integer> path = bfs(i, j);
                     pathsList.add(path);
                 }
             }
@@ -141,22 +133,84 @@ class dataanalyzer {
         return pathsList;
     }
 
-    public static ArrayList<Integer> findPath(ArrayList<Integer> path, int start, int end){
-        Node sampleNode = nodes.get(start);
-        if(sampleNode.neighbors.contains(end)){
-            path.add(end);
-            return path;    
+    public static ArrayList<Integer> bfs(int start, int end){
+        ArrayList<Integer> prev = bfs_solve(start);
+
+        return bfs_reconstruct(start, end, prev);
+    }
+
+
+    public static ArrayList<Integer> bfs_solve(int start){
+        Queue<Integer> q = new PriorityQueue<Integer>();
+        q.add(start);
+
+        ArrayList<Boolean> visited = new ArrayList<>();
+        ArrayList<Integer> prev = new ArrayList<>();
+        for(int i = 0; i < numberOfNodes; i++){
+            visited.add(false);
+            prev.add(null);
         }
-        else{
-            //iterate through each node's list of neighbors
-            for(int i = 0; i < sampleNode.neighbors.size(); i++){
-                int newPoint = sampleNode.neighbors.get(i);
-                path.add(newPoint);
-                return findPath(path, newPoint, end);
+        visited.set(start, true);
+
+        while(!q.isEmpty()){
+            int node = q.remove();
+            ArrayList<Integer> neighbs = nodes.get(node).neighbors;
+
+            for(int j = 0; j < neighbs.size(); j++){
+                if(!visited.get(neighbs.get(j))){
+                    q.add(neighbs.get(j));
+                    visited.set(neighbs.get(j), true);
+                    prev.set(neighbs.get(j), node);
+                }
             }
         }
-        return null;
+
+        return prev;
     }
+
+    public static ArrayList<Integer> bfs_reconstruct(int start, int end, ArrayList<Integer> prev){
+        ArrayList<Integer> path = new ArrayList<>();
+        for(int at = end; prev.get(at) != null; at = prev.get(at)){
+            path.add(at);
+        }
+
+        if(prev.get(path.get(path.size()-1)) == start){
+            return path;
+        }
+        ArrayList<Integer> empty = new ArrayList<>();
+        return empty;
+    }
+
+    public static void calculateFriends(ArrayList<ArrayList<Integer>> list){
+        for(int i = 0; i < nodes.size(); i++){
+            Node node_to_find = nodes.get(i);
+
+            for(ArrayList<Integer> path : list){
+                if(path.contains(i)){
+                    node_to_find.friends += 1.0f;
+                }
+            }
+
+        }
+    }
+
+    public static void topFiveFriends(){
+        while(top5Friends.size() < 5){
+            int node = -1;
+            float maxFriend = -1.0f;
+
+            for(int i = 0; i < nodes.size(); i++){
+                if(nodes.get(i).friends > maxFriend && !top5Friends.contains(i)){
+                    maxFriend = nodes.get(i).friends;
+                    node = i;
+                }
+            }
+
+            top5Friends.add(node);
+
+        }
+    }
+        
 }
 
 class Node {
@@ -173,7 +227,10 @@ class Node {
         neighbors.add(url_id);
     }
 
-    public void AddFriend(){
-        friends += 1.0;
+    public void Print(int id){
+        System.out.println("Node ID: " + id);
+        System.out.println("URL: " + og_url);
+        System.out.println("Friends (Betweenness Centrality: " + friends);
+        System.out.println("List of Neighbors: " + neighbors.toString() + "\n");
     }
 }
