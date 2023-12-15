@@ -9,7 +9,7 @@ import java.util.Queue;
 
 class dataanalyzer {
 
-    private static final String FILENAME = "c:\\Users\\elfack\\OneDrive - SAS\\Documents\\MCS-381\\Projekt_drei\\nodes_1000.csv";
+    private static final String FILENAME = "nodes_1000.csv";
 
     static int numberOfEdges = 0;
     static int numberOfNodes = 0;
