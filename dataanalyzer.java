@@ -178,12 +178,18 @@ class dataanalyzer {
     // graph using a Breadth-First-Search algorithm
     public static ArrayList<ArrayList<Integer>> generatePaths(){
         ArrayList<ArrayList<Integer>> pathsList = new ArrayList<>();
+        HashMap<Integer,ArrayList<Integer>> alreadyVisited = new HashMap<>();
+        for(int i = 0; i < numberOfNodes; i++){
+            ArrayList<Integer> temp = new ArrayList<>();
+            alreadyVisited.put(i, temp);
+        }
 
         for(int i = 0; i < numberOfNodes; i++){
             for(int j = 0; j < numberOfNodes; j++){
-                if(i != j){
+                if(i != j && !alreadyVisited.get(i).contains(j) && !alreadyVisited.get(j).contains(i)){
                     ArrayList<Integer> path = bfs(i, j);
                     pathsList.add(path);
+                    alreadyVisited.get(i).add(j);
                 }
             }
         }
