@@ -9,7 +9,7 @@ import java.util.Queue;
 
 class dataanalyzer {
 
-    private static final String FILENAME = "C:\\Users\\elfack\\OneDrive - SAS\\Documents\\MCS-381\\Projekt_drei\\nodes_1000.csv";
+    private static final String FILENAME = "c:\\Users\\elfack\\OneDrive - SAS\\Documents\\MCS-381\\Projekt_drei\\nodes_1000.csv";
 
     static int numberOfEdges = 0;
     static int numberOfNodes = 0;
@@ -18,7 +18,10 @@ class dataanalyzer {
     static HashMap<Integer,Node> nodes = new HashMap<>();    // nodes: keeps track of each nodes' neighbors
     static HashMap<String,Integer> hm_ids = new HashMap<>(); // hm_ids: keeps track of which strings have which integer ids associated
     static ArrayList<Integer> top5Friends = new ArrayList<>(); // A list of 5 node IDs which represent
+    static ArrayList<Float> coefficientClusters = new ArrayList<>(); // A list of clustering scores
     static int sumOfPaths = 0;
+    static HashMap<Integer,Float> coefficientClusteringScores = new HashMap<>();    // Index, Score
+    static ArrayList<Integer> top5CoefficientClusteringScores = new ArrayList<>();    // Index
 
     /**
      * @param args
@@ -52,7 +55,9 @@ class dataanalyzer {
 
         ArrayList<ArrayList<Integer>> shortestPaths = generatePaths();
         diameter = findDiameter(shortestPaths);
+        calculateClusteringCoefficient();
         calculateFriends(shortestPaths);
+        topFiveCoefficientClusteringScores();
         topFiveFriends();
         printScore();
     }
@@ -94,6 +99,13 @@ class dataanalyzer {
         System.out.println("Density: " + numberOfEdges / (numberOfNodes * (numberOfNodes - 1.0)));
         System.out.println("Diameter: " + diameter + "\n");
 
+        System.out.println("Top 5 clustering coefficients:");
+        System.out.println("1 (" + top5CoefficientClusteringScores.get(0) + ", " + nodes.get(top5CoefficientClusteringScores.get(0)).og_url + " , " + coefficientClusteringScores.get(top5CoefficientClusteringScores.get(0)) + ")");
+        System.out.println("2 (" + top5CoefficientClusteringScores.get(1) + ", " + nodes.get(top5CoefficientClusteringScores.get(1)).og_url + " , " + coefficientClusteringScores.get(top5CoefficientClusteringScores.get(1)) + ")");
+        System.out.println("3 (" + top5CoefficientClusteringScores.get(2) + ", " + nodes.get(top5CoefficientClusteringScores.get(2)).og_url + " , " + coefficientClusteringScores.get(top5CoefficientClusteringScores.get(2)) + ")");
+        System.out.println("4 (" + top5CoefficientClusteringScores.get(3) + ", " + nodes.get(top5CoefficientClusteringScores.get(3)).og_url + " , " + coefficientClusteringScores.get(top5CoefficientClusteringScores.get(3)) + ")");
+        System.out.println("5 (" + top5CoefficientClusteringScores.get(4) + ", " + nodes.get(top5CoefficientClusteringScores.get(4)).og_url + " , " + coefficientClusteringScores.get(top5CoefficientClusteringScores.get(4)) + ")");
+        System.out.println();
         System.out.println("Top 5 Friends:");
         System.out.println("1 (" + top5Friends.get(0) + ", " + nodes.get(top5Friends.get(0)).og_url + " , " + nodes.get(top5Friends.get(0)).friends + ")");
         System.out.println("2 (" + top5Friends.get(1) + ", " + nodes.get(top5Friends.get(1)).og_url + " , " + nodes.get(top5Friends.get(1)).friends + ")");
@@ -117,6 +129,50 @@ class dataanalyzer {
         }
         return maxLength;
     }
+
+    // Rank the top five clustering scores
+    public static void topFiveCoefficientClusteringScores() {
+        while(top5CoefficientClusteringScores.size() < 5){
+            int node = -1;
+            float maxFriend = -1.0f;
+
+            for(int i = 0; i < nodes.size(); i++){
+                if(coefficientClusteringScores.get(i) > maxFriend && !top5CoefficientClusteringScores.contains(i)){
+                    maxFriend = coefficientClusteringScores.get(i);
+                    node = i;
+                }
+            }
+
+            top5CoefficientClusteringScores.add(node);
+        }
+    }
+
+    // We find the clustering coefficient
+    public static void calculateClusteringCoefficient() {
+        for (int i = 0; i < nodes.size(); i++) {
+            ArrayList<Integer> neighbors = nodes.get(i).neighbors;
+            float denom = 1.0f; 
+            float numer = 0.0f;
+            float score = 0.0f;
+            if (neighbors.size() == 1) {
+                coefficientClusters.add(score);
+            } else {
+                denom = (neighbors.size() * (neighbors.size() - 1) / 2);
+                ArrayList<Integer> alreadyChecked = new ArrayList<>();
+                for (int j : neighbors) {
+                    ArrayList<Integer> secondaryNeighbors = nodes.get(j).neighbors;
+                    alreadyChecked.add(j);
+                    for (int q : neighbors) {
+                        if (secondaryNeighbors.contains(q) && !alreadyChecked.contains(q)) {
+                            numer = numer + 1.0f;
+                        }
+                        }
+                    }
+                }
+                score = numer / denom;
+                coefficientClusteringScores.put(i, score);
+            }
+        }
 
     // We must generate a list of the shortest paths between any two nodes in our
     // graph using a Breadth-First-Search algorithm
